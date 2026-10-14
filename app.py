@@ -1,10 +1,11 @@
-import random
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="AoT: Wall Escape", page_icon="🏰", layout="centered"
+    page_title="AoT: Wall Escape 3D Style", page_icon="🏰", layout="centered"
 )
 
+# 1. Thanh Sidebar: Tải nhạc nền tùy chỉnh (MP3, WAV, OGG)
 st.sidebar.title("🎵 Âm Thanh Trận Chiến")
 uploaded_music = st.sidebar.file_uploader(
     "Tải lên bài hát yêu thích của bạn (MP3, WAV, OGG):",
@@ -25,139 +26,217 @@ else:
 
 st.sidebar.markdown("---")
 st.sidebar.info(
-    "⚔️ **Cách chơi:** Né Đá (🪨) và Cành cây (🪵), nhặt Kiếm (🗡️) hồi thể lực"
-    " và chạy về Tường thành (🏰) trước khi bị Titan bắt!"
+    "⚔️ **Cách chơi:** Dùng phím `⬅️` `➡️` hoặc nút bấm trên màn hình để né Đá"
+    " (🪨) và Cành cây (🪵), nhặt Kiếm (🗡️) hồi thể lực và chạy về Tường thành"
+    " (🏰) trước khi bị Titan bắt!"
 )
 
-if "game_over" not in st.session_state:
-  st.session_state.game_over = False
-if "game_win" not in st.session_state:
-  st.session_state.game_win = False
-if "score" not in st.session_state:
-  st.session_state.score = 0
-if "stamina" not in st.session_state:
-  st.session_state.stamina = 100
-if "titan_distance" not in st.session_state:
-  st.session_state.titan_distance = 8
-if "wall_distance" not in st.session_state:
-  st.session_state.wall_distance = 40
-if "lane" not in st.session_state:
-  st.session_state.lane = 1
-if "obstacle_lane" not in st.session_state:
-  st.session_state.obstacle_lane = random.randint(0, 2)
-if "obstacle_type" not in st.session_state:
-  st.session_state.obstacle_type = random.choice(["🪨", "🪵"])
-if "item_lane" not in st.session_state:
-  st.session_state.item_lane = random.randint(0, 2)
-
+# Giao diện chính game
 st.title("🏰 ATTACK ON TITAN: CHẠY VỀ BỨC TƯỜNG")
 st.write(
-    "Né **Đá (🪨)** và **Cành cây (🪵)**, nhặt **Kiếm (🗡️)** và chạy về"
-    " **Tường thành** trước khi Titan bắt!"
+    "🎮 **Bản đồ họa chuyển động:** Né chướng ngại vật ngẫu nhiên rơi xuống và"
+    " sinh tồn!"
 )
 
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-  st.metric(label="🏆 Điểm", value=st.session_state.score)
-with col2:
-  st.metric(label="❤️ Thể lực", value=f"{st.session_state.stamina}%")
-with col3:
-  st.metric(label="👹 Titan cách", value=f"{st.session_state.titan_distance}m")
-with col4:
-  st.metric(label="🏰 Còn cách Tường", value=f"{st.session_state.wall_distance}m")
+# 2. Khung Game HTML/JS Canvas trực quan
+game_html = """
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            background-color: #0e1117;
+            color: white;
+            font-family: sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        canvas {
+            background: linear-gradient(to bottom, #2b3e50, #1a252f);
+            border: 3px solid #ff4b4b;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 75, 75, 0.4);
+            display: block;
+            margin: 10px auto;
+        }
+        .btn-container {
+            margin-top: 10px;
+        }
+        button {
+            background-color: #ff4b4b;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 5px;
+            transition: 0.2s;
+        }
+        button:hover {
+            background-color: #ff2222;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="450" height="400"></canvas>
+    <div class="btn-container">
+        <button onclick="moveLeft()">⬅️ Trái</button>
+        <button onclick="moveRight()">Phải ➡️</button>
+    </div>
 
-if st.session_state.obstacle_lane == st.session_state.item_lane:
-  st.session_state.item_lane = (st.session_state.obstacle_lane + 1) % 3
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
 
-lane_symbols = ["  🌿  ", "  🌿  ", "  🌿  "]
-lane_symbols[st.session_state.obstacle_lane] = (
-    f"  {st.session_state.obstacle_type}  "
-)
-lane_symbols[st.session_state.item_lane] = "  🗡️  "
-lane_symbols[st.session_state.lane] = "  🏃💨 "
+        let laneWidth = 150;
+let playerLane = 1; // 0: Trái, 1: Giữa, 2: Phải
+        let score = 0;
+        let stamina = 100;
+        let titanDist = 80;
+        let wallDist = 400;
 
-st.markdown("### 🌲 Đường Mòn Hướng Về Cổng Thành")
-st.code(
-    f"""
-[Làn Trái]    [Làn Giữa]    [Làn Phải]
-     {lane_symbols[0]}     {lane_symbols[1]}     {lane_symbols[2]}
-    -----------------------------------
-                  👹 TITAN ĐANG GẦM GỪ PHÍA SAU!
-    """,
-    language="text",
-)
+        let obstacles = [];
+        let items = [];
+        let gameActive = true;
 
-if st.session_state.game_win:
-  st.success("🎉 XUẤT SẮC! Bạn đã chạy vào bên trong Tường thành an toàn!")
-  if st.button("🔄 Chơi lại màn mới"):
-    st.session_state.game_win = False
-    st.session_state.score = 0
-    st.session_state.stamina = 100
-    st.session_state.titan_distance = 8
-    st.session_state.wall_distance = 40
-    st.session_state.lane = 1
-    st.rerun()
-elif st.session_state.game_over:
-  st.error("💀 BẠN ĐÃ BỊ TITAN TÓM HOẶC KIỆT SỨC!")
-  if st.button("🔄 Thử lại"):
-    st.session_state.game_over = False
-    st.session_state.score = 0
-    st.session_state.stamina = 100
-    st.session_state.titan_distance = 8
-    st.session_state.wall_distance = 40
-    st.session_state.lane = 1
-    st.rerun()
-else:
-  c1, c2, c3 = st.columns(3)
+        // Sinh ngẫu nhiên chướng ngại vật ở các làn
+        function spawnObstacle() {
+            if (!gameActive) return;
+            let lane = Math.floor(Math.random() * 3);
+            let type = Math.random() < 0.5 ? "🪨" : "🪵";
+            obstacles.push({ lane: lane, y: -50, type: type });
+        }
 
+        // Sinh ngẫu nhiên vật phẩm kiếm (🗡️)
+        function spawnItem() {
+            if (!gameActive) return;
+            let lane = Math.floor(Math.random() * 3);
+            items.push({ lane: lane, y: -50 });
+        }
 
-  def run_game(direction):
-    if direction == "left" and st.session_state.lane > 0:
-      st.session_state.lane -= 1
-    elif direction == "right" and st.session_state.lane < 2:
-      st.session_state.lane += 1
+        setInterval(spawnObstacle, 2000);
+        setInterval(spawnItem, 3500);
 
-    st.session_state.stamina -= 5
-    st.session_state.wall_distance = max(
-        0, st.session_state.wall_distance - 4
-    )
+        function moveLeft() {
+            if (playerLane > 0) playerLane--;
+        }
 
-    if st.session_state.lane == st.session_state.obstacle_lane:
-      st.session_state.titan_distance -= 3
-      st.session_state.wall_distance += 3
-      st.toast("💥 Bạn vấp chướng ngại vật! Titan áp sát!", icon="⚠️")
-    else:
-      st.session_state.score += 20
-      st.session_state.titan_distance = min(
-          10, st.session_state.titan_distance + 1
-      )
+        function moveRight() {
+            if (playerLane < 2) playerLane++;
+        }
 
-    if st.session_state.lane == st.session_state.item_lane:
-      st.session_state.stamina = min(100, st.session_state.stamina + 30)
-      st.toast("✨ Nhặt được Lưỡi kiếm! Phục hồi thể lực.", icon="🗡️")
+        window.addEventListener('keydown', function(e) {
+            if (e.key === "ArrowLeft" || e.key === "a") moveLeft();
+            if (e.key === "ArrowRight" || e.key === "d") moveRight();
+        });
 
-    st.session_state.obstacle_lane = random.randint(0, 2)
-    st.session_state.obstacle_type = random.choice(["🪨", "🪵"])
-    st.session_state.item_lane = random.randint(0, 2)
+        function update() {
+            if (!gameActive) return;
 
-    if st.session_state.wall_distance <= 0:
-      st.session_state.game_win = True
-    elif (
-        st.session_state.titan_distance <= 0
-        or st.session_state.stamina <= 0
-    ):
-      st.session_state.game_over = True
+            wallDist -= 1;
+            stamina -= 0.05;
 
+            // Di chuyển và kiểm tra chướng ngại vật
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].y += 3;
+                if (obstacles[i].y > 320 && obstacles[i].y < 370 && obstacles[i].lane === playerLane) {
+                    stamina -= 25;
+                    titanDist = Math.max(10, titanDist - 15);
+                    obstacles.splice(i, 1);
+                } else if (obstacles[i].y > 400) {
+                    obstacles.splice(i, 1);
+                    score += 50;
+                }
+            }
 
-  with c1:
-    if st.button("⬅️ Tránh Trái"):
-      run_game("left")
-      st.rerun()
-  with c2:
-    if st.button("⬆️ Chạy Thẳng"):
-      run_game("straight")
-      st.rerun()
-  with c3:
-    if st.button("➡️ Tránh Phải"):
-      run_game("right")
-      st.rerun()
+            // Di chuyển và kiểm tra vật phẩm hồi thể lực
+            for (let i = items.length - 1; i >= 0; i--) {
+                items[i].y += 3;
+                if (items[i].y > 320 && items[i].y < 370 && items[i].lane === playerLane) {
+                    stamina = Math.min(100, stamina + 30);
+                    items.splice(i, 1);
+                } else if (items[i].y > 400) {
+                    items.splice(i, 1);
+                }
+            }
+
+            if (stamina <= 0 || wallDist <= 0) {
+                gameActive = false;
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Vẽ 3 làn đường
+            ctx.strokeStyle = "#555";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 10]);
+            ctx.beginPath();
+            ctx.moveTo(150, 0); ctx.lineTo(150, 400);
+            ctx.moveTo(300, 0); ctx.lineTo(300, 400);
+            ctx.stroke();
+            ctx.setLineDash([]);
+// Vẽ Titan phía sau
+            ctx.fillStyle = "#ff4b4b";
+            ctx.font = "24px sans-serif";
+            ctx.fillText("👹 TITAN ĐANG Đuổi", 150, 40);
+
+            // Vẽ chướng ngại vật ngẫu nhiên
+            for (let obs of obstacles) {
+                let x = obs.lane * laneWidth + 50;
+                ctx.font = "32px sans-serif";
+                ctx.fillText(obs.type, x, obs.y);
+            }
+
+            // Vẽ vật phẩm
+            for (let item of items) {
+                let x = item.lane * laneWidth + 50;
+                ctx.font = "32px sans-serif";
+                ctx.fillText("🗡️", x, item.y);
+            }
+
+            // Vẽ nhân vật người chơi
+            let playerX = playerLane * laneWidth + 50;
+            ctx.font = "36px sans-serif";
+            ctx.fillText("🏃", playerX, 350);
+
+            // Bảng thông tin HUD trên canvas
+            ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+            ctx.fillRect(0, 365, 450, 35);
+            ctx.fillStyle = "white";
+            ctx.font = "14px sans-serif";
+            ctx.fillText(`🏆 Điểm: ${Math.floor(score)}`, 20, 387);
+            ctx.fillText(`❤️ Thể lực: ${Math.floor(stamina)}%`, 160, 387);
+            ctx.fillText(`🏰 Tường: ${wallDist}m`, 320, 387);
+
+            if (!gameActive) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = stamina <= 0 ? "#ff4b4b" : "#00cc66";
+                ctx.font = "bold 24px sans-serif";
+                ctx.fillText(stamina <= 0 ? "💀 BẠN ĐÃ BỊ TITAN TÓM!" : "🎉 THẮNG RỒI!", 90, 200);
+                ctx.font = "16px sans-serif";
+                ctx.fillStyle = "white";
+                ctx.fillText("Tải lại trang (F5) để chơi lại!", 120, 240);
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
+"""
+
+components.html(game_html, height=500)

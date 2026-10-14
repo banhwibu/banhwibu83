@@ -398,4 +398,140 @@
             scoreText.innerText = `ĐIỂM: 0`;
             progressBar.style.width = '0%';
             
-            player.style.
+            player.style.bottom = '100px';
+            chaserTitan.style.bottom = '-120px';
+            updatePlayerPosition();
+
+            isGaming = true;
+            clearInterval(spawnTimer);
+            cancelAnimationFrame(gameLoopId);
+
+            spawnTimer = setInterval(spawnObject, 1200);
+            gameLoop();
+        }
+
+        function spawnObject() {
+            if (!isGaming) return;
+
+            const lane = Math.floor(Math.random() * 3);
+            const rand = Math.random();
+
+            let type = 'blade';
+            if (rand < 0.5) {
+                type = 'rock';
+            } else if (rand < 0.75) {
+                type = 'tree';
+            } else {
+                type = 'blade';
+            }
+
+            const element = document.createElement('div');
+            element.classList.add('entity');
+
+            if (type === 'rock') {
+                element.classList.add('obstacle-rock');
+                element.innerText = '🪨';
+            } else if (type === 'tree') {
+                element.classList.add('obstacle-tree');
+                element.innerText = '🪵 CÀNH CÂY';
+            } else {
+                element.classList.add('item-blade');
+                element.innerText = '⚔️';
+            }
+
+            element.style.left = lanePositions[lane] + 'px';
+            element.style.top = '-50px';
+
+            container.appendChild(element);
+
+            items.push({
+                element: element,
+                lane: lane,
+                y: -50,
+                type: type
+            });
+        }
+
+        function gameLoop() {
+            if (!isGaming) return;
+
+            distanceTraveled += speed * 0.1;
+            let progress = Math.min((distanceTraveled / TARGET_DISTANCE) * 100, 100);
+            progressBar.style.width = progress + '%';
+
+            if (distanceTraveled >= TARGET_DISTANCE) {
+                endGame(true);
+                return;
+            }
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                let item = items[i];
+                item.y += speed;
+                item.element.style.top = item.y + 'px';
+
+                const playerY = 600;
+
+                if (item.lane === currentLane && Math.abs(item.y - playerY) < 35) {
+                    if (item.type === 'blade') {
+                        playSound('blade');
+                        score += 100;
+                        scoreText.innerText = `ĐIỂM: ${score}`;
+                        item.element.remove();
+                        items.splice(i, 1);
+                        continue;
+                    } else {
+                        playSound('hit');
+                        item.element.remove();
+                        items.splice(i, 1);
+                        handleObstacleHit();
+                        continue;
+                    }
+                }
+
+                if (item.y > 750) {
+                    item.element.remove();
+                    items.splice(i, 1);
+                }
+            }
+
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        function handleObstacleHit() {
+            if (titanCloser) {
+                endGame(false);
+            } else {
+                titanCloser = true;
+                chaserTitan.style.bottom = '15px';
+                
+                setTimeout(() => {
+                    if (isGaming && titanCloser) {
+                        titanCloser = false;
+                        chaserTitan.style.bottom = '-120px';
+                    }
+                }, 4000);
+            }
+        }
+
+        function endGame(isWin) {
+            isGaming = false;
+            clearInterval(spawnTimer);
+            cancelAnimationFrame(gameLoopId);
+            bgm.pause();
+
+            gameoverOverlay.style.display = 'flex';
+            document.getElementById('final-score').innerText = `TỔNG ĐIỂM: ${score}`;
+
+            if (isWin) {
+                document.getElementById('gameover-title').innerText = "BẠN ĐÃ THÀNH CÔNG!";
+                document.getElementById('gameover-title').style.color = "#48bb78";
+                document.getElementById('gameover-desc').innerText = "Levi đã an toàn rút lui vào bên trong Bức Tường!";
+            } else {
+                document.getElementById('gameover-title').innerText = "BẠN ĐÃ BỊ BẮT!";
+                document.getElementById('gameover-title').style.color = "#e53e3e";
+                document.getElementById('gameover-desc').innerText = "Lũ Titan đã bắt kịp Levi do vấp phải chướng ngại vật!";
+            }
+        }
+    </script>
+</body>
+</html>

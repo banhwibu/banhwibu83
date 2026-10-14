@@ -33,7 +33,7 @@ game_html = """
     <div id="box">
         <div id="menu">
             <h1>🏃 CHẠY HOẶC BỊ BẮT</h1>
-            <p style="font-size: 13px; color: #d1d5db; margin-bottom: 15px;">Né Đá (🪨), Cành cây (🪵) & Nhặt Kiếm (🗡️)</p>
+            <p style="font-size: 13px; color: #d1d5db; margin-bottom: 15px;">Né Đá (🪨), Cây (🌳) & Nhặt Kiếm (🗡️)</p>
             <div style="margin-bottom: 15px;">
                 <div style="font-size: 13px; margin-bottom: 6px; color: #fbbf24; font-weight: bold;">TỐC ĐỘ:</div>
                 <button class="s-btn" onclick="setSpd(2.0, this)">Chậm</button>
@@ -66,7 +66,7 @@ const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
             active = true; stamina = 100; score = 0; wall = 5000; obs = []; items = []; lane = 1;
             music.play().catch(e => {});
             clearInterval(t1); clearInterval(t2);
-            t1 = setInterval(() => { if(active) obs.push({l: Math.floor(Math.random()*3), y: 70, t: Math.random()<0.5?"🪨":"🪵"}); }, 2000 - spd*150);
+            t1 = setInterval(() => { if(active) obs.push({l: Math.floor(Math.random()*3), y: 70, t: Math.random()<0.5?"🪨":"🌳"}); }, 2000 - spd*150);
             t2 = setInterval(() => { if(active) items.push({l: Math.floor(Math.random()*3), y: 70}); }, 3500);
         }
 

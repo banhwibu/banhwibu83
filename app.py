@@ -2,10 +2,10 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="AoT: Levi's Wall Escape", page_icon="🏰", layout="centered"
+    page_title="HÃY CẨN THẬN!! - AoT Escape", page_icon="⚠️", layout="centered"
 )
 
-# 1. Thanh Sidebar: Tải nhạc nền tùy chỉnh (MP3, WAV, OGG)
+# 1. Thanh Sidebar: Tải nhạc nền tùy chỉnh
 st.sidebar.title("🎵 Âm Thanh Trận Chiến")
 uploaded_music = st.sidebar.file_uploader(
     "Tải lên bài hát yêu thích của bạn (MP3, WAV, OGG):",
@@ -26,19 +26,18 @@ else:
 
 st.sidebar.markdown("---")
 st.sidebar.info(
-    "⚔️ **Cách chơi:** Dùng phím mũi tên `⬅️` `➡️` hoặc bấm các nút phía dưới"
-    " để điều khiển Binh trưởng Levi né Đá (🪨) và Cành cây (🪵), nhặt Kiếm"
-    " (🗡️) hồi thể lực!"
+    "⚔️ **Hướng dẫn sinh tồn:**\n"
+    "- Né ngay các viên **Đá (🪨)** và **Cành cây (🪵)** khi chúng rơi xuống!\n"
+    "- Nhặt **Kiếm (🗡️)** để hồi thể lực.\n"
+    "- Đừng để bầy Titan phía sau tóm được bạn!"
 )
 
 # Giao diện chính game
-st.title("🏰 ATTACK ON TITAN: BINH TRƯỞNG LEVI VƯỢT ẢI")
-st.write(
-    "🏃 Chạy thật nhanh về phía trước, né chướng ngại vật và sinh tồn trước bầy"
-    " Titan!"
-)
+st.title("⚠️ HÃY CẨN THẬN!!")
+st.subheader("🏰 BẦY TITAN ĐANG RƯỢT ĐUỔI PHÍA SAU!")
+st.write("🏃 Né chướng ngại vật xuất hiện trên đường và sinh tồn đến cùng!")
 
-# 2. Khung Game HTML/JS Canvas chuẩn xác không bị lỗi kết thúc sớm
+# 2. Khung Game HTML/JS Canvas với nhân vật 🦽
 game_html = """
 <!DOCTYPE html>
 <html lang="vi">
@@ -54,7 +53,7 @@ game_html = """
             padding: 0;
         }
         canvas {
-            background: linear-gradient(to bottom, #2b3e50, #1a252f);
+            background: linear-gradient(to bottom, #1f2937, #111827);
             border: 3px solid #ff4b4b;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(255, 75, 75, 0.4);
@@ -68,7 +67,7 @@ game_html = """
             background-color: #ff4b4b;
             color: white;
             border: none;
-            padding: 12px 30px;
+            padding: 12px 35px;
             font-size: 16px;
             font-weight: bold;
             border-radius: 5px;
@@ -96,34 +95,33 @@ let laneWidth = 150;
         let playerLane = 1; // 0: Trái, 1: Giữa, 2: Phải
         let score = 0;
         let stamina = 100;
-        let wallDist = 1000;
+        let wallDist = 5000;
 
         let obstacles = [];
         let items = [];
+        // Bầy Titan ở phía sau (phía trên)
         let titans = [
-            { x: 70, y: 90, emoji: "👹" },
-            { x: 220, y: 120, emoji: "👺" },
-            { x: 370, y: 100, emoji: "🗿" }
+            { x: 70, y: 50, emoji: "👹" },
+            { x: 220, y: 40, emoji: "👺" },
+            { x: 370, y: 50, emoji: "🗿" }
         ];
         let gameActive = true;
 
-        // Sinh chướng ngại vật
         function spawnObstacle() {
             if (!gameActive) return;
             let lane = Math.floor(Math.random() * 3);
             let type = Math.random() < 0.5 ? "🪨" : "🪵";
-            obstacles.push({ lane: lane, y: -40, type: type });
+            obstacles.push({ lane: lane, y: 70, type: type });
         }
 
-        // Sinh vật phẩm kiếm
         function spawnItem() {
             if (!gameActive) return;
             let lane = Math.floor(Math.random() * 3);
-            items.push({ lane: lane, y: -40 });
+            items.push({ lane: lane, y: 70 });
         }
 
         setInterval(spawnObstacle, 2000);
-        setInterval(spawnItem, 3500);
+        setInterval(spawnItem, 4000);
 
         function moveLeft() {
             if (playerLane > 0) playerLane--;
@@ -141,18 +139,15 @@ let laneWidth = 150;
         function update() {
             if (!gameActive) return;
 
-            wallDist -= 0.4;
+            wallDist -= 1;
             stamina -= 0.03;
 
-            // Hiệu ứng bầy Titan nhấp nhô đuổi theo
             titans.forEach(t => {
-                t.y += Math.sin(Date.now() / 200) * 0.3;
+                t.y = 45 + Math.sin(Date.now() / 200) * 5;
             });
 
-            // Di chuyển chướng ngại vật
             for (let i = obstacles.length - 1; i >= 0; i--) {
-                obstacles[i].y += 2.5;
-                // Va chạm
+                obstacles[i].y += 2.8;
                 if (obstacles[i].y > 310 && obstacles[i].y < 360 && obstacles[i].lane === playerLane) {
                     stamina -= 25;
                     obstacles.splice(i, 1);
@@ -162,9 +157,8 @@ let laneWidth = 150;
                 }
             }
 
-            // Di chuyển vật phẩm
             for (let i = items.length - 1; i >= 0; i--) {
-                items[i].y += 2.5;
+                items[i].y += 2.8;
                 if (items[i].y > 310 && items[i].y < 360 && items[i].lane === playerLane) {
                     stamina = Math.min(100, stamina + 30);
                     items.splice(i, 1);
@@ -173,9 +167,7 @@ let laneWidth = 150;
                 }
             }
 
-            if (stamina <= 0) {
-                gameActive = false;
-            } else if (wallDist <= 0) {
+            if (stamina <= 0 || wallDist <= 0) {
                 gameActive = false;
             }
         }
@@ -184,56 +176,56 @@ let laneWidth = 150;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Vẽ làn đường
-ctx.strokeStyle = "#555";
+            ctx.strokeStyle = "#444";
             ctx.lineWidth = 2;
             ctx.setLineDash([10, 10]);
             ctx.beginPath();
-            ctx.moveTo(150, 0); ctx.lineTo(150, 400);
-            ctx.moveTo(300, 0); ctx.lineTo(300, 400);
+            ctx.moveTo(150, 60); ctx.lineTo(150, 365);
+            ctx.moveTo(300, 60); ctx.lineTo(300, 365);
             ctx.stroke();
-            ctx.setLineDash([]);
+ctx.setLineDash([]);
 
-            // Vẽ Titan phía sau
-            ctx.font = "28px sans-serif";
+            // 1. Vẽ bầy Titan ở phía sau (vùng trên)
+            ctx.fillStyle = "rgba(255, 75, 75, 0.2)";
+            ctx.fillRect(0, 0, 450, 65);
+            ctx.font = "26px sans-serif";
             for (let t of titans) {
-                ctx.fillText(t.emoji, t.x, t.y);
+                ctx.fillText(t.emoji, t.x, t.y + 15);
             }
             ctx.fillStyle = "#ff4b4b";
-            ctx.font = "bold 12px sans-serif";
-            ctx.fillText("⚠️ BẦY TITAN ĐANG GẦM GỪ PHÍA SAU!", 110, 70);
+            ctx.font = "bold 11px sans-serif";
+            ctx.fillText("⚠️ BẦY TITAN ĐANG ĐUỔI SÁT PHÍA SAU!", 110, 25);
 
-            // Vẽ chướng ngại vật
+            // 2. Vẽ chướng ngại vật (🪨 / 🪵)
             for (let obs of obstacles) {
                 let x = obs.lane * laneWidth + 55;
                 ctx.font = "32px sans-serif";
                 ctx.fillText(obs.type, x, obs.y);
             }
 
-            // Vẽ vật phẩm kiếm
+            // 3. Vẽ vật phẩm kiếm (🗡️)
             for (let item of items) {
                 let x = item.lane * laneWidth + 55;
                 ctx.font = "32px sans-serif";
                 ctx.fillText("🗡️", x, item.y);
             }
 
-            // Vẽ nhân vật Binh trưởng Levi (Sử dụng icon chiến binh áo choàng ngầu)
-            let playerX = playerLane * laneWidth + 50;
-            ctx.font = "38px sans-serif";
-            ctx.fillText("🪖", playerX - 2, 335);
-            ctx.font = "24px sans-serif";
-            ctx.fillText("🧥", playerX + 2, 355);
+            // 4. Vẽ nhân vật chính với emoji 🦽 ở phía dưới
+            let playerX = playerLane * laneWidth + 45;
+            ctx.font = "40px sans-serif";
+            ctx.fillText("🦽", playerX, 345);
 
             // Bảng HUD thông tin
-            ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+            ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
             ctx.fillRect(0, 365, 450, 35);
             ctx.fillStyle = "white";
             ctx.font = "14px sans-serif";
-            ctx.fillText(`🏆 Điểm: ${Math.floor(score)}`, 20, 387);
-            ctx.fillText(`❤️ Thể lực: ${Math.floor(stamina)}%`, 160, 387);
-            ctx.fillText(`🏰 Tường: ${Math.floor(wallDist)}m`, 320, 387);
+            ctx.fillText(`🏆 Điểm: ${Math.floor(score)}`, 15, 387);
+            ctx.fillText(`❤️ Thể lực: ${Math.floor(stamina)}%`, 155, 387);
+            ctx.fillText(`🏰 Tường: ${Math.floor(wallDist)}m`, 315, 387);
 
             if (!gameActive) {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+                ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = stamina <= 0 ? "#ff4b4b" : "#00cc66";
                 ctx.font = "bold 22px sans-serif";

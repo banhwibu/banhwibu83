@@ -1,188 +1,401 @@
-import random
-import streamlit as st
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Levi: Cuộc Tháo Chạy Khỏi Rừng Titan</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
 
-st.set_page_config(
-    page_title="AoT: Wall Escape", page_icon="🏰", layout="centered"
-)
+        body {
+            background-color: #1a1a1a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+        }
 
-# --- KHU VỰC TÙY CHỈNH ÂM THANH NỀN ---
-st.sidebar.title("🎵 Âm Thanh Trận Chiến")
-uploaded_music = st.sidebar.file_uploader(
-    "Tải lên bài hát yêu thích của bạn (MP3, WAV, OGG):",
-    type=["mp3", "wav", "ogg"],
-)
+        #game-container {
+            position: relative;
+            width: 450px;
+            height: 700px;
+            background: linear-gradient(#2d3e50, #1b2631);
+            overflow: hidden;
+            border: 4px solid #4a5568;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
 
-if uploaded_music is not None:
-  st.sidebar.audio(uploaded_music, format="audio/mp3", loop=True)
-  st.sidebar.success("🎉 Đang phát nhạc tùy chỉnh của bạn!")
-else:
-  st.sidebar.info(
-      "💡 Mẹo: Bạn có thể tải file nhạc `.mp3` của mình lên ở trên để làm nhạc"
-      " nền chiến đấu."
-  )
-  st.sidebar.markdown("---")
-  st.sidebar.write("Hoặc nghe nhạc mặc định:")
-  st.sidebar.audio(
-      "https://actions.google.com/sounds/v1/ambiences/epic_battle.ogg",
-      format="audio/ogg",
-      loop=True,
-  )
+        /* Giao diện điểm số & Tiến trình */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            z-index: 10;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+        }
 
-st.sidebar.markdown("---")
-st.sidebar.info(
-    "⚔️ **Cách chơi:** Né Đá (🪨) và Cành cây (🪵), nhặt Kiếm (🗡️) hồi thể lực"
-    " và chạy về Bức Tường thành (🏰) trước khi bị Titan bắt!"
-)
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
 
-# Khởi tạo trạng thái game
-if "game_over" not in st.session_state:
-  st.session_state.game_over = False
-if "game_win" not in st.session_state:
-  st.session_state.game_win = False
-if "score" not in st.session_state:
-  st.session_state.score = 0
-if "stamina" not in st.session_state:
-  st.session_state.stamina = 100
-if "titan_distance" not in st.session_state:
-  st.session_state.titan_distance = 8
-if "wall_distance" not in st.session_state:
-  st.session_state.wall_distance = 40
-if "lane" not in st.session_state:
-  st.session_state.lane = 1
-if "obstacle_lane" not in st.session_state:
-  st.session_state.obstacle_lane = random.randint(0, 2)
-if "obstacle_type" not in st.session_state:
-  st.session_state.obstacle_type = random.choice(["🪨", "🪵"])
-if "item_lane" not in st.session_state:
-  st.session_state.item_lane = random.randint(0, 2)
+        .score-box {
+            font-size: 20px;
+            font-weight: bold;
+            color: #f6e05e;
+            text-shadow: 2px 2px 4px #000;
+        }
 
-st.title("🏰 ATTACK ON TITAN: CHẠY VỀ BỨC TƯỜNG")
-st.write(
-    "Né **Đá (🪨)** và **Cành cây (🪵)**, nhặt **Lưỡi kiếm (🗡️)** và chạy về"
-    " **Bức tường thành** trước khi Titan bắt!"
-)
+        .progress-container {
+            width: 100%;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 3px;
+            border: 1px solid #718096;
+        }
 
-# Thanh trạng thái
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-  st.metric(label="🏆 Điểm", value=st.session_state.score)
-with col2:
-  st.metric(label="❤️ Thể lực", value=f"{st.session_state.stamina}%")
-with col3:
-  st.metric(label="👹 Titan cách", value=f"{st.session_state.titan_distance}m")
-with col4:
-  st.metric(label="🏰 Còn cách Tường", value=f"{st.session_state.wall_distance}m")
+        .progress-bar {
+            height: 12px;
+            width: 0%;
+            background: linear-gradient(90deg, #3182ce, #63b3ed);
+            border-radius: 8px;
+            transition: width 0.1s linear;
+        }
 
-# Đảm bảo chướng ngại vật và vật phẩm không đè lên nhau
-if st.session_state.obstacle_lane == st.session_state.item_lane:lane_symbols = ["  🌿  ", "  🌿  ", "  🌿  "]
-lane_symbols[st.session_state.obstacle_lane] = (
-    f"  {st.session_state.obstacle_type}  "
-)
-lane_symbols[st.session_state.item_lane] = "  🗡️  "
-lane_symbols[st.session_state.lane] = "  🏃💨 "
+        .progress-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #cbd5e0;
+            margin-top: 4px;
+            font-weight: bold;
+        }
 
-st.markdown("### 🌲 Đường Mòn Hướng Về Cổng Thành")
-st.code(
-    f"""
-    [Làn Trái]    [Làn Giữa]    [Làn Phải]
-     {lane_symbols[0]}     {lane_symbols[1]}     {lane_symbols[2]}
-    -----------------------------------
-                  👹 TITAN ĐANG GẦM GỪ PHÍA SAU!
-    """,
-    language="text",
-)
+        /* Khung cảnh game / Đường chạy */
+        #track {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
 
-# Xử lý khi Thắng
-if st.session_state.game_win:
-  st.success(
-      "🎉 XUẤT SẮC! Bạn đã chạy qua cổng và vào được bên trong Bức tường thành"
-      " an toàn! Sĩ quan quân đoàn trinh sát đã đóng cửa lại cứu bạn."
-  )
-  if st.button("🔄 Chơi lại màn mới"):
-    st.session_state.game_win = False
-    st.session_state.score = 0
-    st.session_state.stamina = 100
-    st.session_state.titan_distance = 8
-    st.session_state.wall_distance = 40
-    st.session_state.lane = 1
-    st.rerun()
+        .lane-line {
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: dashed rgba(255, 255, 255, 0.15);
+        }
 
-# Xử lý khi Thua
-elif st.session_state.game_over:
-  st.error(
-      "💀 BẠN ĐÃ BỊ BỎ LẠI NGOÀI TƯỜNG HOẶC KIỆT SỨC! Titan đã tóm được bạn..."
-  )
-  if st.button("🔄 Thử lại"):
-    st.session_state.game_over = False
-    st.session_state.score = 0
-    st.session_state.stamina = 100
-    st.session_state.titan_distance = 8
-    st.session_state.wall_distance = 40
-    st.session_state.lane = 1
-    st.rerun()
+        .lane-line.left { left: 33.33%; }
+        .lane-line.right { left: 66.66%; }
 
-else:
-  # Nút điều khiển
-  c1, c2, c3 = st.columns(3)
+        /* Các Entity trong Game */
+        .entity {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: left 0.1s ease-out;
+        }
 
-  def run(direction):
-    if direction == "left" and st.session_state.lane > 0:
-      st.session_state.lane -= 1
-    elif direction == "right" and st.session_state.lane < 2:
-      st.session_state.lane += 1
+        /* Levi (Nhân vật chính) */
+        #player {
+            width: 50px;
+            height: 60px;
+            background-color: #2b6cb0;
+            border: 3px solid #63b3ed;
+            color: #fff;
+            border-radius: 50% 50% 10px 10px;
+            z-index: 5;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
 
-    st.session_state.stamina -= 5
-    st.session_state.wall_distance = max(
-        0, st.session_state.wall_distance - 4
-    )
+        /* Titan Đuổi Theo Phía Sau */
+        #chaser-titan {
+            width: 90px;
+            height: 90px;
+            background-color: #c53030;
+            border: 3px solid #feb2b2;
+            color: #fff;
+            border-radius: 20px;
+            z-index: 4;
+            transition: bottom 0.3s ease, left 0.2s ease;
+            box-shadow: 0 0 20px rgba(229, 62, 62, 0.6);
+            display: flex;
+            flex-direction: column;
+            font-size: 11px;
+            text-align: center;
+        }
 
-    if st.session_state.lane == st.session_state.obstacle_lane:
-      st.session_state.titan_distance -= 3
-      st.session_state.wall_distance += 3
-      obs_name = (
-          "Hòn đá lớn"
-          if st.session_state.obstacle_type == "🪨"
-          else "Cành cây đổ"
-      )
-      st.toast(
-          f"💥 Bạn vấp phải {obs_name}! Bị chậm lại và Titan áp sát!", icon="⚠️"
-      )
-    else:
-      st.session_state.score += 20
-      st.session_state.titan_distance = min(
-          10, st.session_state.titan_distance + 1
-      )
+        /* Chướng ngại vật & Lưỡi kiếm */
+        .obstacle-rock {
+            width: 55px;
+            height: 55px;
+            background-color: #4a5568;
+            border: 3px solid #a0aec0;
+            border-radius: 40%;
+            color: #e2e8f0;
+            font-size: 12px;
+        }
 
-    if st.session_state.lane == st.session_state.item_lane:
-      st.session_state.stamina = min(100, st.session_state.stamina + 30)
-      st.toast(
-          "✨ Nhặt được Lưỡi kiếm sắc bén! Lấy lại tinh thần và thể lực.",
-          icon="🗡️",
-      )
+        .obstacle-tree {
+            width: 110px;
+            height: 35px;
+            background-color: #744210;
+            border: 2px solid #d69e2e;
+            border-radius: 5px;
+            color: #fefcbf;
+            font-size: 11px;
+        }
 
-    st.session_state.obstacle_lane = random.randint(0, 2)
-    st.session_state.obstacle_type = random.choice(["🪨", "🪵"])
-  st.session_state.item_lane = (st.session_state.obstacle_lane + 1) % 3
-st.session_state.item_lane = random.randint(0, 2)
+        .item-blade {
+            width: 35px;
+            height: 35px;
+            background-color: #319795;
+            border: 2px solid #81e6d9;
+            transform: translate(-50%, -50%) rotate(45deg);
+            box-shadow: 0 0 10px #81e6d9;
+        }
 
-    if st.session_state.wall_distance <= 0:
-      st.session_state.game_win = True
-    elif (
-        st.session_state.titan_distance <= 0
-        or st.session_state.stamina <= 0
-    ):
-      st.session_state.game_over = True
+        /* Màn hình Bắt đầu & Kết thúc */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            padding: 20px;
+            text-align: center;
+        }
 
-  with c1:
-    if st.button("⬅️ Tránh Trái"):
-      run("left")
-      st.rerun()
-  with c2:
-    if st.button("⬆️ Chạy Thẳng"):
-      run("straight")
-      st.rerun()
-  with c3:
-    if st.button("➡️ Tránh Phải"):
-      run("right")
-      st.rerun()
-# Xây dựng không gian 3 làn đường
+        .overlay h1 {
+            font-size: 26px;
+            color: #e53e3e;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .overlay p {
+            font-size: 14px;
+            color: #cbd5e0;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.4);
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .btn:hover {
+            background: #c53030;
+            transform: scale(1.05);
+        }
+
+        .controls-hint {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- UI Layer -->
+        <div id="ui-layer">
+            <div class="hud-row">
+                <div class="score-box" id="score-text">ĐIỂM: 0</div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="progress-labels">
+                <span>🌲 KHU RỪNG</span>
+                <span>🏰 BỨC TƯỜNG</span>
+            </div>
+        </div>
+
+        <!-- Track / Lanes -->
+        <div id="track">
+            <div class="lane-line left"></div>
+            <div class="lane-line right"></div>
+        </div>
+
+        <!-- Player (Levi) -->
+        <div id="player" class="entity">LEVI</div>
+
+        <!-- Chaser Titan -->
+        <div id="chaser-titan" class="entity">
+            <span>TITAN</span>
+            <span>ĐUỔI THEO</span>
+        </div>
+
+        <!-- Start Overlay -->
+        <div id="start-overlay" class="overlay">
+            <h1>Chạy Trốn Titan</h1>
+            <p>
+                <b>Nhạc nền Attack on Titan (Akuma no Ko) 🎵</b><br><br>
+                Dùng phím <b>Mũi tên Trái / Phải</b> hoặc <b>A / D</b> để chuyển làn.<br><br>
+                • Nhặt <b>Lưỡi Kiếm ⚔️</b> để tăng điểm.<br>
+                • Tránh <b>Đá 🪨</b> và <b>Cành Cây 🪵</b>.<br>
+                • Va vấp sẽ khiến Titan phía sau áp sát và bắt bạn!<br>
+                • Chạy về tới <b>Bức Tường</b> an toàn để chiến thắng!
+            </p>
+            <button class="btn" onclick="startGame()">BẮT ĐẦU CHẠY</button>
+            <div class="controls-hint">Hỗ trợ cả vuốt màn hình trên điện thoại</div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="gameover-overlay" class="overlay" style="display: none;">
+            <h1 id="gameover-title">BẠN ĐÃ THẤT BẠI</h1>
+            <p id="gameover-desc">Titan đã bắt được Levi!</p>
+            <div class="score-box" id="final-score" style="margin-bottom: 20px;">ĐIỂM: 0</div>
+            <button class="btn" onclick="startGame()">CHẠY LẠI</button>
+        </div>
+    </div>
+
+    <!-- Nhạc nền tích hợp -->
+    <audio id="bgm" loop preload="auto">
+        <source src="https://assets.mixkit.co/music/preview/mixkit-epic-heroic-cinematic-1145.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const chaserTitan = document.getElementById('chaser-titan');
+        const scoreText = document.getElementById('score-text');
+        const progressBar = document.getElementById('progress-bar');
+        const startOverlay = document.getElementById('start-overlay');
+        const gameoverOverlay = document.getElementById('gameover-overlay');
+        const bgm = document.getElementById('bgm');
+
+        // Tạo hiệu ứng âm thanh hệ thống (Web Audio API)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'blade') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        const lanePositions = [75, 225, 375];
+        const TARGET_DISTANCE = 1000;
+        
+        let currentLane = 1;
+        let score = 0;
+        let distanceTraveled = 0;
+        let speed = 4;
+        let isGaming = false;
+        let titanCloser = false;
+        let items = [];
+        let gameLoopId;
+        let spawnTimer;
+
+        // Xử lý điều khiển bàn phím
+        document.addEventListener('keydown', (e) => {
+            if (!isGaming) return;
+            if ((e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') && currentLane > 0) {
+                currentLane--;
+            } else if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && currentLane < 2) {
+                currentLane++;
+            }
+            updatePlayerPosition();
+        });
+
+        // Xử lý điều khiển cảm ứng vuốt
+        let touchStartX = 0;
+        container.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        });
+        container.addEventListener('touchend', (e) => {
+            if (!isGaming) return;
+            let touchEndX = e.changedTouches[0].clientX;
+            let diff = touchEndX - touchStartX;
+            if (diff > 30 && currentLane < 2) {
+                currentLane++;
+            } else if (diff < -30 && currentLane > 0) {
+                currentLane--;
+            }
+            updatePlayerPosition();
+        });
+
+        function updatePlayerPosition() {
+            player.style.left = lanePositions[currentLane] + 'px';
+            chaserTitan.style.left = lanePositions[currentLane] + 'px';
+        }
+
+        function startGame() {
+            bgm.currentTime = 0;
+            bgm.volume = 0.5;
+            bgm.play().catch(e => console.log("Trình duyệt yêu cầu tương tác để phát nhạc"));
+
+            currentLane = 1;
+            score = 0;
+            distanceTraveled = 0;
+            titanCloser = false;
+            speed = 4.5;
+            
+            items.forEach(item => item.element.remove());
+            items = [];
+
+            startOverlay.style.display = 'none';
+            gameoverOverlay.style.display = 'none';
+            scoreText.innerText = `ĐIỂM: 0`;
+            progressBar.style.width = '0%';
+            
+            player.style.

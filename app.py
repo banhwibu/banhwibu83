@@ -8,6 +8,17 @@ st.set_page_config(
 st.title("🎵 Chạy lẹ lên!!")
 st.subheader("Akuma no Ko - Attack on Titan ED 7")
 
+# Sử dụng widget st.audio chuẩn của Streamlit để phát nhạc ổn định tuyệt đối
+akuma_music_url = "https://archive.org/download/akuma-no-ko-attack-on-titan/Akuma%20no%20Ko.mp3"
+st.audio(akuma_music_url, format="audio/mp3", autoplay=True)
+
+st.sidebar.title("🎮 Hướng dẫn chơi")
+st.sidebar.info(
+    "1. Bấm nút Play trên thanh nhạc bên trên để nghe nhạc.\n2. Chọn cấp độ"
+    " phù hợp.\n3. Dùng phím Trái/Phải hoặc nút bấm để né Đá (🪨) và Cây (🌳).\n4."
+    " Nhặt Kiếm (🗡️) để tăng điểm!"
+)
+
 game_html = """
 <!DOCTYPE html>
 <html lang="vi">
@@ -22,30 +33,20 @@ game_html = """
         .s-btn { background: #374151; color: white; border: 2px solid #4b5563; padding: 6px 14px; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 0 4px; }
         .s-btn.active { background: #ff4b4b; border-color: #ff2222; }
         .play-btn { background: #22c55e; color: white; border: none; padding: 10px 30px; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; margin-top: 15px; }
-        .music-btn { background: #3b82f6; color: white; border: none; padding: 8px 20px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(59, 130, 246, 0.4); }
-        .music-btn:hover { background: #2563eb; }
         .ctrl { margin-top: 10px; }
         .c-btn { background-color: #ff4b4b; color: white; border: none; padding: 12px 35px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; margin: 0 10px; }
     </style>
 </head>
 <body>
-    <audio id="music" loop preload="auto">
-        <source src="https://archive.org/download/akuma-no-ko-attack-on-titan/Akuma%20no%20Ko.mp3" type="audio/mpeg">
-    </audio>
-
     <div id="box">
         <div id="menu">
             <h1>🏃 CHẠY HOẶC BỊ BẮT</h1>
-            <p style="font-size: 12px; color: #d1d5db; margin-bottom: 10px;">Né Đá (🪨) & Cây (🌳). Nhặt Kiếm (🗡️) tăng điểm!</p>
-            
-            <!-- Nút bật nhạc riêng biệt để tránh bị trình duyệt chặn -->
-            <button class="music-btn" onclick="toggleMusic()">🔊 Bật nhạc nền (Akuma no Ko)</button>
-
-            <div style="margin-bottom: 12px;">
+            <p style="font-size: 13px; color: #d1d5db; margin-bottom: 15px;">Né Đá (🪨) & Cây (🌳). Nhặt Kiếm (🗡️) tăng điểm!</p>
+            <div style="margin-bottom: 15px;">
                 <div style="font-size: 13px; margin-bottom: 6px; color: #fbbf24; font-weight: bold;">CHỌN CẤP ĐỘ:</div>
                 <button class="s-btn" onclick="setLevel('slow', 2.0, 2500, this)">🐢 Chậm</button>
-<button class="s-btn active" onclick="setLevel('medium', 3.6, 1500, this)">🏃 Vừa</button>
-                <button class="s-btn" onclick="setLevel('fast', 6.5, 750, this)">⚡ Nhanh</button>
+                <button class="s-btn active" onclick="setLevel('medium', 3.6, 1500, this)">🏃 Vừa</button>
+<button class="s-btn" onclick="setLevel('fast', 6.5, 750, this)">⚡ Nhanh</button>
             </div>
             <button class="play-btn" onclick="start()">🎮 BẮT ĐẦU CHƠI</button>
         </div>
@@ -57,7 +58,7 @@ game_html = """
     </div>
     <script>
         const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
-        const music = document.getElementById("music"), menu = document.getElementById("menu");
+        const menu = document.getElementById("menu");
         let lane = 1, score = 0, wall = 5000, active = false, caught = false;
         
         let spd = 3.6;
@@ -65,14 +66,6 @@ game_html = """
 
         let obs = [], items = [], titans = [{x:70, y:50, e:"👹"}, {x:220, y:40, e:"👺"}, {x:370, y:50, e:"🗿"}];
         let t1, t2;
-
-        function toggleMusic() {
-            music.play().then(() => {
-                alert("🎵 Đã bật nhạc nền thành công!");
-            }).catch(e => {
-                alert("Không thể phát nhạc tự động, hãy kiểm tra lại trình duyệt!");
-            });
-        }
 
         function setLevel(level, speed, rate, btn) {
             spd = speed;
@@ -85,9 +78,6 @@ game_html = """
             menu.style.display = "none";
             active = true; caught = false; score = 0; wall = 5000; obs = []; items = []; lane = 1;
             
-            // Cố gắng tự phát nhạc khi bấm bắt đầu
-            music.play().catch(e => console.log("Audio play blocked"));
-
             clearInterval(t1);
             clearInterval(t2);
 
@@ -122,7 +112,7 @@ game_html = """
 
         function loop() {
             ctx.clearRect(0, 0, 450, 400);
-ctx.strokeStyle = "#444"; ctx.lineWidth = 2; ctx.setLineDash([12,12]);
+            ctx.strokeStyle = "#444"; ctx.lineWidth = 2; ctx.setLineDash([12,12]);
             ctx.beginPath(); ctx.moveTo(150,60); ctx.lineTo(150,365); ctx.moveTo(300,60); ctx.lineTo(300,365); ctx.stroke(); ctx.setLineDash([]);
 
             // Titan phía sau
@@ -132,7 +122,7 @@ ctx.strokeStyle = "#444"; ctx.lineWidth = 2; ctx.setLineDash([12,12]);
                 t.y = 45 + Math.sin(Date.now()/150 + i)*5;
                 ctx.fillText(t.e, t.x, t.y + 15);
             });
-            ctx.fillStyle = "#ff4b4b"; ctx.font = "bold 11px sans-serif"; ctx.fillText("⚠️ BẦY TITAN ĐANG ĐUỔI SÁT PHÍA SAU!", 110, 22);
+ctx.fillStyle = "#ff4b4b"; ctx.font = "bold 11px sans-serif"; ctx.fillText("⚠️ BẦY TITAN ĐANG ĐUỔI SÁT PHÍA SAU!", 110, 22);
 
             if(active) {
                 wall -= (spd * 0.3);
@@ -178,3 +168,18 @@ ctx.strokeStyle = "#444"; ctx.lineWidth = 2; ctx.setLineDash([12,12]);
                     ctx.fillText("👹", px-45, py-35); ctx.fillText("👺", px+45, py-35);
                     ctx.fillText("🗿", px-50, py+10); ctx.fillText("🧟", px+50, py+10); ctx.fillText("👿", px, py-50);
                     ctx.font = "40px sans-serif"; ctx.fillText("🦽", px, py);
+                    ctx.fillStyle = "#ff4b4b"; ctx.font = "bold 22px sans-serif"; ctx.fillText("💀 ĐÃ ĐỤNG VẬT CẢN, BỊ TITAN BẮT!", 30, 160);
+                } else {
+                    ctx.fillStyle = "#00cc66"; ctx.font = "bold 22px sans-serif"; ctx.fillText("🎉 VỀ ĐẾN TƯỜNG THÀNH AN TOÀN!", 30, 160);
+                }
+                ctx.font = "14px sans-serif"; ctx.fillStyle = "white"; ctx.fillText("Bấm F5 để chơi lại!", 150, 210);
+            }
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
+</body>
+</html>
+"""
+
+components.html(game_html, height=520)

@@ -5,27 +5,11 @@ st.set_page_config(
     page_title="CHẠY HOẶC BỊ BẮT - AoT Escape", page_icon="⚠️", layout="centered"
 )
 
-# --- PHẦN TRÌNH PHÁT NHẠC AKUMA NO KO & TẢI NHẠC ---
-st.title("🎵 Akuma no Ko - Attack on Titan ED 7")
-st.subheader("Trình phát nhạc Streamlit")
+# Đổi tiêu đề thanh phát nhạc theo yêu cầu
+st.title("🎵 Chạy lẹ lên!!")
+st.subheader("Akuma no Ko - Attack on Titan ED 7")
 
-# Link audio bài hát Akuma no Ko hoặc file tải lên tùy chỉnh
-akuma_no_ko_url = "https://archive.org/download/akuma-no-ko-attack-on-titan/Akuma%20no%20Ko.mp3"
-
-uploaded_music = st.sidebar.file_uploader(
-    "Tải lên file nhạc MP3/WAV của bạn:", type=["mp3", "wav", "ogg"]
-)
-
-if uploaded_music is not None:
-  st.sidebar.audio(uploaded_music, format="audio/mp3")
-  st.sidebar.success("🎉 Đang phát nhạc bạn tải lên!")
-else:
-  st.sidebar.info("💡 Đang phát nhạc mặc định Akuma no Ko.")
-  st.sidebar.audio(akuma_no_ko_url, format="audio/mp3")
-
-st.sidebar.markdown("---")
-
-# --- PHẦN GAME "CHẠY HOẶC BỊ BẮT" ---
+# Game HTML5 kết hợp nhạc nền tự động phát
 game_html = """
 <!DOCTYPE html>
 <html lang="vi">
@@ -45,34 +29,43 @@ game_html = """
     </style>
 </head>
 <body>
-    <audio id="music" loop><source src="https://archive.org/download/akuma-no-ko-attack-on-titan/Akuma%20no%20Ko.mp3" type="audio/mpeg"></audio>
+    <!-- Nhạc nền Akuma no Ko trực tuyến -->
+    <audio id="music" loop>
+        <source src="https://archive.org/download/akuma-no-ko-attack-on-titan/Akuma%20no%20Ko.mp3" type="audio/mpeg">
+    </audio>
+
     <div id="box">
         <div id="menu">
             <h1>🏃 CHẠY HOẶC BỊ BẮT</h1>
             <p style="font-size: 13px; color: #d1d5db; margin-bottom: 15px;">Né Đá (🪨) & Cây (🌳). Đụng là bị bắt ngay!</p>
             <div style="margin-bottom: 15px;">
-                <div style="font-size: 13px; margin-bottom: 6px; color: #fbbf24; font-weight: bold;">TỐC ĐỘ:</div>
-<button class="s-btn" onclick="setSpd(2.0, this)">Chậm</button>
-                <button class="s-btn active" onclick="setSpd(3.2, this)">Vừa</button>
-                <button class="s-btn" onclick="setSpd(4.8, this)">Nhanh</button>
+                <div style="font-size: 13px; margin-bottom: 6px; color: #fbbf24; font-weight: bold;">CHỌN CẤP ĐỘ:</div>
+                <button class="s-btn" onclick="setLevel('slow', 2.0, 2500, this)">🐢 Chậm</button>
+                <button class="s-btn active" onclick="setLevel('medium', 3.6, 1500, this)">🏃 Vừa</button>
+                <button class="s-btn" onclick="setLevel('fast', 6.5, 750, this)">⚡ Nhanh</button>
             </div>
             <button class="play-btn" onclick="start()">🎮 BẮT ĐẦU CHƠI</button>
         </div>
         <canvas id="cvs" width="450" height="400"></canvas>
     </div>
     <div class="ctrl">
-        <button class="c-btn" onclick="move(-1)">⬅️ Trái</button>
+<button class="c-btn" onclick="move(-1)">⬅️ Trái</button>
         <button class="c-btn" onclick="move(1)">Phải ➡️</button>
     </div>
     <script>
         const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
         const music = document.getElementById("music"), menu = document.getElementById("menu");
-        let lane = 1, score = 0, wall = 5000, spd = 3.2, active = false, caught = false;
+        let lane = 1, score = 0, wall = 5000, active = false, caught = false;
+        
+        let spd = 3.6;
+        let spawnRate = 1500;
+
         let obs = [], titans = [{x:70, y:50, e:"👹"}, {x:220, y:40, e:"👺"}, {x:370, y:50, e:"🗿"}];
         let t1;
 
-        function setSpd(s, btn) {
-            spd = s;
+        function setLevel(level, speed, rate, btn) {
+            spd = speed;
+            spawnRate = rate;
             document.querySelectorAll('.s-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
         }
@@ -80,9 +73,20 @@ game_html = """
         function start() {
             menu.style.display = "none";
             active = true; caught = false; score = 0; wall = 5000; obs = []; lane = 1;
-            music.play().catch(e => {});
+            
+            // Tự động phát nhạc khi bấm bắt đầu chơi
+            music.play().catch(e => console.log("Audio play blocked:", e));
+
             clearInterval(t1);
-            t1 = setInterval(() => { if(active) obs.push({l: Math.floor(Math.random()*3), y: 70, t: Math.random()<0.5?"🪨":"🌳"}); }, 1800 - spd*120);
+            t1 = setInterval(() => {
+                if(active) {
+                    obs.push({
+                        l: Math.floor(Math.random() * 3), 
+                        y: 70, 
+                        t: Math.random() < 0.5 ? "🪨" : "🌳"
+                    });
+                }
+            }, spawnRate);
         }
 
         function move(dir) {
@@ -109,16 +113,15 @@ game_html = """
             ctx.fillStyle = "#ff4b4b"; ctx.font = "bold 11px sans-serif"; ctx.fillText("⚠️ BẦY TITAN ĐANG ĐUỔI SÁT PHÍA SAU!", 110, 22);
 
             if(active) {
-                wall -= spd * 0.4;
+                wall -= (spd * 0.3);
                 obs.forEach((o, i) => {
                     o.y += spd;
-                    // Đụng đá (🪨) hoặc cây (🌳) là thua và bị bắt ngay lập tức
                     if(o.y > 310 && o.y < 360 && o.l === lane) {
-active = false; caught = true; clearInterval(t1);
+                        active = false; caught = true; clearInterval(t1);
                     } else if(o.y > 400) {
                         obs.splice(i, 1); score += 50;
                     }
-                });
+});
                 if(wall <= 0) { active = false; caught = false; clearInterval(t1); }
             }
 

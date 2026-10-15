@@ -5,11 +5,27 @@ st.set_page_config(
     page_title="CHẠY HOẶC BỊ BẮT - AoT Escape", page_icon="⚠️", layout="centered"
 )
 
-st.sidebar.title("🎵 Âm Thanh Trận Chiến")
-st.sidebar.file_uploader(
-    "Tải nhạc MP3/WAV của bạn (Tùy chọn):", type=["mp3", "wav", "ogg"]
+# --- PHẦN TRÌNH PHÁT NHẠC AKUMA NO KO & TẢI NHẠC ---
+st.title("🎵 Akuma no Ko - Attack on Titan ED 7")
+st.subheader("Trình phát nhạc Streamlit")
+
+# Link audio bài hát Akuma no Ko hoặc file tải lên tùy chỉnh
+akuma_no_ko_url = "https://archive.org/download/akuma-no-ko-attack-on-titan/Akuma%20no%20Ko.mp3"
+
+uploaded_music = st.sidebar.file_uploader(
+    "Tải lên file nhạc MP3/WAV của bạn:", type=["mp3", "wav", "ogg"]
 )
 
+if uploaded_music is not None:
+  st.sidebar.audio(uploaded_music, format="audio/mp3")
+  st.sidebar.success("🎉 Đang phát nhạc bạn tải lên!")
+else:
+  st.sidebar.info("💡 Đang phát nhạc mặc định Akuma no Ko.")
+  st.sidebar.audio(akuma_no_ko_url, format="audio/mp3")
+
+st.sidebar.markdown("---")
+
+# --- PHẦN GAME "CHẠY HOẶC BỊ BẮT" ---
 game_html = """
 <!DOCTYPE html>
 <html lang="vi">
@@ -29,14 +45,14 @@ game_html = """
     </style>
 </head>
 <body>
-    <audio id="music" loop><source src="https://actions.google.com/sounds/v1/ambiences/epic_battle.ogg" type="audio/ogg"></audio>
+    <audio id="music" loop><source src="https://archive.org/download/akuma-no-ko-attack-on-titan/Akuma%20no%20Ko.mp3" type="audio/mpeg"></audio>
     <div id="box">
         <div id="menu">
             <h1>🏃 CHẠY HOẶC BỊ BẮT</h1>
             <p style="font-size: 13px; color: #d1d5db; margin-bottom: 15px;">Né Đá (🪨) & Cây (🌳). Đụng là bị bắt ngay!</p>
             <div style="margin-bottom: 15px;">
                 <div style="font-size: 13px; margin-bottom: 6px; color: #fbbf24; font-weight: bold;">TỐC ĐỘ:</div>
-                <button class="s-btn" onclick="setSpd(2.0, this)">Chậm</button>
+<button class="s-btn" onclick="setSpd(2.0, this)">Chậm</button>
                 <button class="s-btn active" onclick="setSpd(3.2, this)">Vừa</button>
                 <button class="s-btn" onclick="setSpd(4.8, this)">Nhanh</button>
             </div>
@@ -49,7 +65,7 @@ game_html = """
         <button class="c-btn" onclick="move(1)">Phải ➡️</button>
     </div>
     <script>
-const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
+        const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
         const music = document.getElementById("music"), menu = document.getElementById("menu");
         let lane = 1, score = 0, wall = 5000, spd = 3.2, active = false, caught = false;
         let obs = [], titans = [{x:70, y:50, e:"👹"}, {x:220, y:40, e:"👺"}, {x:370, y:50, e:"🗿"}];
@@ -96,9 +112,9 @@ const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
                 wall -= spd * 0.4;
                 obs.forEach((o, i) => {
                     o.y += spd;
-                    // Đụng đá hoặc cây là thua ngay lập tức
+                    // Đụng đá (🪨) hoặc cây (🌳) là thua và bị bắt ngay lập tức
                     if(o.y > 310 && o.y < 360 && o.l === lane) {
-                        active = false; caught = true; clearInterval(t1);
+active = false; caught = true; clearInterval(t1);
                     } else if(o.y > 400) {
                         obs.splice(i, 1); score += 50;
                     }
@@ -112,7 +128,7 @@ const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
             ctx.font = "40px sans-serif"; ctx.fillText("🦽", px, py + (active ? Math.sin(Date.now()/100)*3 : 0));
 
             // HUD
-ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 365, 450, 35);
+            ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 365, 450, 35);
             ctx.fillStyle = "white"; ctx.font = "14px sans-serif";
             ctx.fillText(`🏆 Điểm: ${Math.floor(score)}`, 15, 387);
             ctx.fillText(`🏰 Tường: ${Math.max(0, Math.floor(wall))}m`, 280, 387);

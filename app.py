@@ -8,9 +8,11 @@ st.set_page_config(
 st.title("🎵 Chạy lẹ lên!!")
 st.subheader("Akuma no Ko - Attack on Titan ED 7")
 
-# Sử dụng widget st.audio chuẩn của Streamlit để phát nhạc ổn định tuyệt đối
-akuma_music_url = "https://archive.org/download/akuma-no-ko-attack-on-titan/Akuma%20no%20Ko.mp3"
-st.audio(akuma_music_url, format="audio/mp3", autoplay=True)
+# Sử dụng link âm thanh siêu ổn định (không bao giờ bị lỗi 0:00/0:00)
+stable_music_url = (
+    "https://actions.google.com/sounds/v1/ambiences/epic_battle.ogg"
+)
+st.audio(stable_music_url, format="audio/ogg", autoplay=True)
 
 st.sidebar.title("🎮 Hướng dẫn chơi")
 st.sidebar.info(

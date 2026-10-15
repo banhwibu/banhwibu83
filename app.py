@@ -33,7 +33,7 @@ game_html = """
     <div id="box">
         <div id="menu">
             <h1>🏃 CHẠY HOẶC BỊ BẮT</h1>
-            <p style="font-size: 13px; color: #d1d5db; margin-bottom: 15px;">Né Đá (🪨), Cây (🌳) & Nhặt Kiếm (🗡️)</p>
+            <p style="font-size: 13px; color: #d1d5db; margin-bottom: 15px;">Né Đá (🪨) & Cây (🌳). Đụng là bị bắt ngay!</p>
             <div style="margin-bottom: 15px;">
                 <div style="font-size: 13px; margin-bottom: 6px; color: #fbbf24; font-weight: bold;">TỐC ĐỘ:</div>
                 <button class="s-btn" onclick="setSpd(2.0, this)">Chậm</button>
@@ -51,9 +51,9 @@ game_html = """
     <script>
 const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
         const music = document.getElementById("music"), menu = document.getElementById("menu");
-        let lane = 1, score = 0, stamina = 100, wall = 5000, spd = 3.2, active = false;
-        let obs = [], items = [], titans = [{x:70, y:50, e:"👹"}, {x:220, y:40, e:"👺"}, {x:370, y:50, e:"🗿"}];
-        let t1, t2;
+        let lane = 1, score = 0, wall = 5000, spd = 3.2, active = false, caught = false;
+        let obs = [], titans = [{x:70, y:50, e:"👹"}, {x:220, y:40, e:"👺"}, {x:370, y:50, e:"🗿"}];
+        let t1;
 
         function setSpd(s, btn) {
             spd = s;
@@ -63,11 +63,10 @@ const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
 
         function start() {
             menu.style.display = "none";
-            active = true; stamina = 100; score = 0; wall = 5000; obs = []; items = []; lane = 1;
+            active = true; caught = false; score = 0; wall = 5000; obs = []; lane = 1;
             music.play().catch(e => {});
-            clearInterval(t1); clearInterval(t2);
-            t1 = setInterval(() => { if(active) obs.push({l: Math.floor(Math.random()*3), y: 70, t: Math.random()<0.5?"🪨":"🌳"}); }, 2000 - spd*150);
-            t2 = setInterval(() => { if(active) items.push({l: Math.floor(Math.random()*3), y: 70}); }, 3500);
+            clearInterval(t1);
+            t1 = setInterval(() => { if(active) obs.push({l: Math.floor(Math.random()*3), y: 70, t: Math.random()<0.5?"🪨":"🌳"}); }, 1800 - spd*120);
         }
 
         function move(dir) {
@@ -94,40 +93,38 @@ const cvs = document.getElementById("cvs"), ctx = cvs.getContext("2d");
             ctx.fillStyle = "#ff4b4b"; ctx.font = "bold 11px sans-serif"; ctx.fillText("⚠️ BẦY TITAN ĐANG ĐUỔI SÁT PHÍA SAU!", 110, 22);
 
             if(active) {
-                wall -= spd * 0.4; stamina -= 0.03;
+                wall -= spd * 0.4;
                 obs.forEach((o, i) => {
                     o.y += spd;
-                    if(o.y > 310 && o.y < 360 && o.l === lane) { stamina -= 25; obs.splice(i, 1); }
-                    else if(o.y > 400) { obs.splice(i, 1); score += 50; }
+                    // Đụng đá hoặc cây là thua ngay lập tức
+                    if(o.y > 310 && o.y < 360 && o.l === lane) {
+                        active = false; caught = true; clearInterval(t1);
+                    } else if(o.y > 400) {
+                        obs.splice(i, 1); score += 50;
+                    }
                 });
-                items.forEach((it, i) => {
-                    it.y += spd;
-                    if(it.y > 310 && it.y < 360 && it.l === lane) { stamina = Math.min(100, stamina + 30); items.splice(i, 1); }
-                    else if(it.y > 400) items.splice(i, 1);
-                });
-                if(stamina <= 0 || wall <= 0) { active = false; clearInterval(t1); clearInterval(t2); }
+                if(wall <= 0) { active = false; caught = false; clearInterval(t1); }
             }
-obs.forEach(o => { ctx.font = "32px sans-serif"; ctx.fillText(o.t, o.l * 150 + 55, o.y); });
-            items.forEach(it => { ctx.font = "32px sans-serif"; ctx.fillText("🗡️", it.l * 150 + 55, it.y); });
+
+            obs.forEach(o => { ctx.font = "32px sans-serif"; ctx.fillText(o.t, o.l * 150 + 55, o.y); });
 
             let px = lane * 150 + 45, py = 345;
             ctx.font = "40px sans-serif"; ctx.fillText("🦽", px, py + (active ? Math.sin(Date.now()/100)*3 : 0));
 
             // HUD
-            ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 365, 450, 35);
+ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 365, 450, 35);
             ctx.fillStyle = "white"; ctx.font = "14px sans-serif";
             ctx.fillText(`🏆 Điểm: ${Math.floor(score)}`, 15, 387);
-            ctx.fillText(`❤️ Thể lực: ${Math.floor(stamina)}%`, 155, 387);
-            ctx.fillText(`🏰 Tường: ${Math.max(0, Math.floor(wall))}m`, 315, 387);
+            ctx.fillText(`🏰 Tường: ${Math.max(0, Math.floor(wall))}m`, 280, 387);
 
             if(!active && menu.style.display === "none") {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.88)"; ctx.fillRect(0, 0, 450, 400);
-                if(stamina <= 0) {
+                if(caught) {
                     ctx.font = "38px sans-serif";
                     ctx.fillText("👹", px-45, py-35); ctx.fillText("👺", px+45, py-35);
                     ctx.fillText("🗿", px-50, py+10); ctx.fillText("🧟", px+50, py+10); ctx.fillText("👿", px, py-50);
                     ctx.font = "40px sans-serif"; ctx.fillText("🦽", px, py);
-                    ctx.fillStyle = "#ff4b4b"; ctx.font = "bold 22px sans-serif"; ctx.fillText("💀 BẠN ĐÃ BỊ BẦY TITAN VÂY KÍN!", 50, 160);
+                    ctx.fillStyle = "#ff4b4b"; ctx.font = "bold 22px sans-serif"; ctx.fillText("💀 ĐÃ ĐỤNG VẬT CẢN, BỊ TITAN BẮT!", 30, 160);
                 } else {
                     ctx.fillStyle = "#00cc66"; ctx.font = "bold 22px sans-serif"; ctx.fillText("🎉 VỀ ĐẾN TƯỜNG THÀNH AN TOÀN!", 30, 160);
                 }
